@@ -48,10 +48,11 @@ const getCustomTypes = (strapi, nexus) => {
 						modelName: nexus.stringArg('The model name of the content type'),
 						slug: nexus.stringArg('The slug to query for'),
 						publicationState: nexus.stringArg('The publication state of the entry'),
+						locale: nexus.stringArg('The locale for the entry'),
 					},
 					resolve: async (_parent, args, ctx) => {
 						const { modelsByName } = getPluginService('settingsService').get();
-						const { modelName, slug, publicationState } = args;
+						const { modelName, slug, publicationState, locale } = args;
 						const { auth } = ctx.state;
 
 						isValidFindSlugParams({
@@ -75,6 +76,17 @@ const getCustomTypes = (strapi, nexus) => {
 						// only return published entries by default if content type has draftAndPublish enabled
 						if (_.get(contentType, ['options', 'draftAndPublish'], false)) {
 							query.publicationState = publicationState || 'live';
+						}
+
+						const isLocaleFieldEnabled = strapi
+							.plugin('graphql')
+							.service('extension')
+							.shadowCRUD(uid)
+							.field('locale')
+							.isEnabled();
+
+						if (isLocaleFieldEnabled) {
+							query.locale = locale || 'en';
 						}
 
 						const data = await getPluginService('slugService').findOne(uid, query);
